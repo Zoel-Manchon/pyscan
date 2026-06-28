@@ -86,6 +86,9 @@ def scan(
         strategy = get_strategy(scan_type, grab_banner=banner)
     except KeyError as exc:
         raise typer.BadParameter(str(exc))
+    except RuntimeError as exc:  # e.g. SYN scan without scapy
+        typer.echo(f"error: {exc}")
+        raise typer.Exit(code=1)
 
     sinks = [TableSink(show_all=show_all)]
     if json_out is not None:
@@ -93,7 +96,11 @@ def scan(
 
     target = ScanTarget(host=host, ports=tuple(port_list), protocol=Protocol.TCP)
     service = ScanService(strategy=strategy, sinks=sinks)
-    asyncio.run(service.run(target, concurrency=concurrency, timeout=timeout))
+    try:
+        asyncio.run(service.run(target, concurrency=concurrency, timeout=timeout))
+    except RuntimeError as exc:  # e.g. SYN scan without raw-socket privileges
+        typer.echo(f"error: {exc}")
+        raise typer.Exit(code=1)
 
 
 @app.command()

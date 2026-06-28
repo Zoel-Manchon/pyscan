@@ -15,6 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+syn = ["scapy>=2.5"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
