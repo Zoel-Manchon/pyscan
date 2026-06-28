@@ -11,6 +11,7 @@ from pyscan.adapters.strategies import (
     s7comm,  # noqa: F401  (self-registers)
     syn,  # noqa: F401  (self-registers)
     tcp_connect,  # noqa: F401  (self-registers)
+    udp,  # noqa: F401  (self-registers)
 )
 from pyscan.adapters.strategies.registry import available, get_strategy, register
 

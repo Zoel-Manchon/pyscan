@@ -21,6 +21,7 @@ class PortState(str, Enum):
     OPEN = "open"
     CLOSED = "closed"
     FILTERED = "filtered"  # no response — firewall/drop, or host down
+    OPEN_FILTERED = "open|filtered"  # UDP: silence is ambiguous (open or filtered)
     UNKNOWN = "unknown"
 
 

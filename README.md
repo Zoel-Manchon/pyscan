@@ -30,6 +30,7 @@ engine never changes.
   (`OpenSSH 9.6p1`, `nginx 1.24.0`, ...)
 - **Host discovery + CIDR sweep** — TCP-ping a whole range, build an inventory
   of live hosts and their services
+- **UDP scan** — unprivileged, with protocol-aware payloads (DNS, SNMP, NTP, DNP3, Modbus/UDP)
 - **Modbus/TCP identification** — read-only OT asset discovery (vendor /
   product / firmware), for **simulators only**
 - **Output** — a pretty `rich` terminal table *and* machine-readable JSON
@@ -150,10 +151,10 @@ src/pyscan/
 - [x] IEC 60870-5-104 identification (read-only) — simulators only
 - [x] S7comm identification (read-only) — simulators only
 - [x] SYN / half-open scan (raw sockets, privileged — `pip install pyscan[syn]`)
-- [ ] UDP scan
+- [x] UDP scan (unprivileged, OT-aware probes: DNS/SNMP/NTP/DNP3/Modbus)
 - [x] SYN / half-open scan (raw sockets, privileged — `pip install pyscan[syn]`)
-- [ ] UDP scan
-- [ ] UDP scan
+- [x] UDP scan (unprivileged, OT-aware probes: DNS/SNMP/NTP/DNP3/Modbus)
+- [x] UDP scan (unprivileged, OT-aware probes: DNS/SNMP/NTP/DNP3/Modbus)
 - [ ] Reuse this skeleton for a packet sniffer (with a Textual TUI)
 
 ## Docker

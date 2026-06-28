@@ -14,6 +14,7 @@ _STATE_STYLE = {
     PortState.OPEN: "bold green",
     PortState.CLOSED: "red",
     PortState.FILTERED: "yellow",
+    PortState.OPEN_FILTERED: "cyan",
     PortState.UNKNOWN: "dim",
 }
 
