@@ -2,7 +2,7 @@
 
 
 
-# pyscan
+# Pyscan
 
 A tiny, modular, **hexagonal** port scanner — a mini-Nmap built to be expanded.
 
