@@ -1,11 +1,4 @@
-```
-       ___
-      /   \         .-.   .-.   .-.   .-.
-      | o |________/   \_/   \_/   \_/   \___
-      \___/                                   \
-                                               )
-                    _________________________/
-```
+
 
 # pyscan
 
@@ -14,7 +7,7 @@ A tiny, modular, **hexagonal** port scanner — a mini-Nmap built to be expanded
 ![CI](https://github.com/Zoel-Manchon/pyscan/actions/workflows/ci.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.11+-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![tests](https://img.shields.io/badge/tests-26%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-41%20passing-brightgreen)
 
 The point of this project isn't the scanner — a TCP connect scan is ~30 lines.
 It's the **architecture**: a clean ports-and-adapters layout where every new
@@ -33,13 +26,15 @@ engine never changes.
 - **Modbus/TCP identification** — read-only OT asset discovery (vendor /
   product / firmware), for **simulators only**
 - **Output** — a pretty `rich` terminal table *and* machine-readable JSON
-- **26 tests**, mostly pure-unit, no network required
+- **41 tests**, mostly pure-unit, no network required
+
+![pyscan demo](docs/demo.gif)
 
 ## Quick start
 
 ```bash
 pip install -e ".[dev]"     # or: make dev
-pytest -q                   # 26 passing
+pytest -q                   # 41 passing
 ```
 
 ```bash
