@@ -14,6 +14,7 @@ import time
 from dataclasses import replace
 from datetime import datetime, timezone
 
+from pyscan.application.rate_limiter import AsyncRateLimiter
 from pyscan.domain.fingerprint import identify
 from pyscan.domain.models import HostResult, PortState, ScanReport, ScanTarget
 from pyscan.domain.ports import ResultSink, ScanStrategy
@@ -30,8 +31,11 @@ class ScanService:
         *,
         concurrency: int = 200,
         timeout: float = 1.0,
+        max_rate: float | None = None,
     ) -> ScanReport:
-        report = await self.scan_host(target, concurrency=concurrency, timeout=timeout)
+        report = await self.scan_host(
+            target, concurrency=concurrency, timeout=timeout, max_rate=max_rate
+        )
         for sink in self._sinks:
             sink.emit(report)
         return report
@@ -42,6 +46,7 @@ class ScanService:
         *,
         concurrency: int = 200,
         timeout: float = 1.0,
+        max_rate: float | None = None,
     ) -> ScanReport:
         """Scan one host and return its report WITHOUT emitting.
 
@@ -55,8 +60,13 @@ class ScanService:
         # single knob that turns "scan 65k ports" from a fork bomb into a
         # well-behaved, tunable workload.
         sem = asyncio.Semaphore(concurrency)
+        limiter = AsyncRateLimiter(max_rate) if max_rate else None
 
         async def bounded(port: int):
+            # Rate gate sits OUTSIDE the semaphore so waiting to pace doesn't
+            # tie up a concurrency slot.
+            if limiter is not None:
+                await limiter.acquire()
             async with sem:
                 return await self._strategy.scan_port(probe_host, port, timeout)
 

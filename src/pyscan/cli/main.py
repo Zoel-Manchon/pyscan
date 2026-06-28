@@ -81,6 +81,9 @@ def scan(
     top: Optional[int] = typer.Option(
         None, "--top-ports", help="Scan the N most common ports instead of -p."
     ),
+    max_rate: Optional[float] = typer.Option(
+        None, "--max-rate", help="Cap probes per second (gentler on fragile/OT hosts)."
+    ),
 ) -> None:
     """Scan HOST for open TCP ports, with service/version detection."""
     if len(expand_targets(host)) > 1:
@@ -110,7 +113,7 @@ def scan(
     target = ScanTarget(host=host, ports=tuple(port_list), protocol=Protocol.TCP)
     service = ScanService(strategy=strategy, sinks=sinks)
     try:
-        asyncio.run(service.run(target, concurrency=concurrency, timeout=timeout))
+        asyncio.run(service.run(target, concurrency=concurrency, timeout=timeout, max_rate=max_rate))
     except RuntimeError as exc:  # e.g. SYN scan without raw-socket privileges
         typer.echo(f"error: {exc}")
         raise typer.Exit(code=1)
