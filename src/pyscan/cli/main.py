@@ -14,16 +14,19 @@ from typing import Optional
 
 import typer
 
+from pyscan.adapters.capture.pcap_reader import read_pcap
 from pyscan.adapters.discovery.tcp_ping import TcpPingDiscovery
 from pyscan.adapters.output.json_sink import JsonSink
 from pyscan.adapters.output.network_json import NetworkJsonSink
 from pyscan.adapters.output.network_table import NetworkTableSink
+from pyscan.adapters.output.packet_table import PacketTableSink
 from pyscan.adapters.output.table import TableSink
 from pyscan.adapters.strategies import available, get_strategy
 from pyscan.application.scan_service import ScanService
 from pyscan.application.sweep_service import SweepService
 from pyscan.cli.banner import render as render_banner
 from pyscan.domain.models import Protocol, ScanTarget
+from pyscan.domain.packet import decode
 from pyscan.domain.port_spec import parse_port_spec
 from pyscan.domain.targets import expand_targets
 
@@ -146,6 +149,30 @@ def sweep(
         asyncio.run(service.run(network, timeout=timeout, discover=discovery))
     except ValueError as exc:
         raise typer.BadParameter(str(exc))
+
+
+@app.command()
+def sniff(
+    pcap: Path = typer.Argument(..., help="Path to a .pcap capture file."),
+    proto: Optional[str] = typer.Option(
+        None, "--proto", help="Only show this protocol (tcp/udp/icmp/arp)."
+    ),
+    count: Optional[int] = typer.Option(None, "--count", "-n", help="Stop after N packets."),
+) -> None:
+    """Decode and display packets from a .pcap file (mini-tshark)."""
+    want = proto.upper() if proto else None
+    packets = []
+    try:
+        for ts, linktype, frame in read_pcap(pcap):
+            pkt = decode(frame, linktype, ts)
+            if want and pkt.protocol != want:
+                continue
+            packets.append(pkt)
+            if count and len(packets) >= count:
+                break
+    except (ValueError, FileNotFoundError, OSError) as exc:
+        raise typer.BadParameter(str(exc))
+    PacketTableSink().emit(packets)
 
 
 @app.command(name="strategies")
