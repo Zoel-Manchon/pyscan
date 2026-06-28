@@ -7,12 +7,11 @@
                     _________________________/
 ```
 
-![pyscan demo](docs/demo.gif)
-
 # pyscan
 
 A tiny, modular, **hexagonal** port scanner — a mini-Nmap built to be expanded.
 
+![CI](https://github.com/Zoel-Manchon/pyscan/actions/workflows/ci.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.11+-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![tests](https://img.shields.io/badge/tests-26%20passing-brightgreen)

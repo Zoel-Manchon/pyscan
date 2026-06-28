@@ -12,8 +12,8 @@ import asyncio
 import time
 
 from pyscan.adapters.strategies.registry import register
-from pyscan.domain.models import PortResult, PortState
 from pyscan.domain.modbus import build_device_id_request, describe, parse_response
+from pyscan.domain.models import PortResult, PortState
 
 
 @register("modbus")

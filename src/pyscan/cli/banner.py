@@ -37,5 +37,5 @@ def render(console: Console | None = None) -> None:
     console.print(SNAKE)
     console.print(WORDMARK)
     console.print(
-        "           [dim]port / service / version / ICS recon[/dim]\n"
+        f"           [dim]port / service / version / ICS recon   v{__version__}[/dim]\n"
     )
