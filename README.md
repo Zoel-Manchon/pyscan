@@ -40,7 +40,7 @@ engine never changes.
 
 ```bash
 pip install -e ".[dev]"     # or: make dev
-pytest -q                   # 26 passing
+pytest -q                   # 53 passing
 ```
 
 ```bash
