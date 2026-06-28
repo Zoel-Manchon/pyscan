@@ -16,6 +16,7 @@ import typer
 
 from pyscan.adapters.capture.pcap_reader import read_pcap
 from pyscan.adapters.discovery.tcp_ping import TcpPingDiscovery
+from pyscan.adapters.output.csv_sink import CsvSink
 from pyscan.adapters.output.json_sink import JsonSink
 from pyscan.adapters.output.network_json import NetworkJsonSink
 from pyscan.adapters.output.network_table import NetworkTableSink
@@ -29,6 +30,7 @@ from pyscan.domain.models import Protocol, ScanTarget
 from pyscan.domain.packet import decode
 from pyscan.domain.port_spec import parse_port_spec
 from pyscan.domain.targets import expand_targets
+from pyscan.domain.top_ports import top_ports
 
 # A curated top-ports set for fast network inventory (not a full 1-1024 sweep).
 DEFAULT_SWEEP_PORTS = (
@@ -73,6 +75,12 @@ def scan(
     json_out: Optional[Path] = typer.Option(
         None, "--json", help="Also write results as JSON to this path."
     ),
+    csv_out: Optional[Path] = typer.Option(
+        None, "--csv", help="Also write results as CSV to this path."
+    ),
+    top: Optional[int] = typer.Option(
+        None, "--top-ports", help="Scan the N most common ports instead of -p."
+    ),
 ) -> None:
     """Scan HOST for open TCP ports, with service/version detection."""
     if len(expand_targets(host)) > 1:
@@ -81,7 +89,7 @@ def scan(
         )
 
     try:
-        port_list = parse_port_spec(ports)
+        port_list = top_ports(top) if top is not None else parse_port_spec(ports)
     except ValueError as exc:
         raise typer.BadParameter(str(exc))
 
@@ -96,6 +104,8 @@ def scan(
     sinks = [TableSink(show_all=show_all)]
     if json_out is not None:
         sinks.append(JsonSink(path=json_out))
+    if csv_out is not None:
+        sinks.append(CsvSink(path=csv_out))
 
     target = ScanTarget(host=host, ports=tuple(port_list), protocol=Protocol.TCP)
     service = ScanService(strategy=strategy, sinks=sinks)

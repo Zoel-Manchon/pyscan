@@ -23,7 +23,7 @@ A modular, **hexagonal** port & OT-protocol scanner — a mini-Nmap built to be 
 ![CI](https://github.com/Zoel-Manchon/pyscan/actions/workflows/ci.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.11+-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![tests](https://img.shields.io/badge/tests-62%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-68%20passing-brightgreen)
 
 The point of this project isn't the scanner — a TCP connect scan is ~30 lines.
 It's the **architecture**: a clean ports-and-adapters layout where every new
@@ -52,18 +52,20 @@ small hexagon.
 - **Packet sniffer** — decode a `.pcap` into a mini-tshark table
   (Ethernet/IPv4/TCP/UDP/ICMP/ARP), filter by protocol
 - **Output** — a pretty `rich` terminal table *and* machine-readable JSON
-- **62 tests**, mostly pure-unit, no network required, run in CI on 3.11 & 3.12
+- **68 tests**, mostly pure-unit, no network required, run in CI on 3.11 & 3.12
 
 ## Quick start
 
 ```bash
 pip install -e ".[dev]"     # or: make dev
-pytest -q                   # 62 passing
+pytest -q                   # 68 passing
 ```
 
 ```bash
 # deep scan of a single host (connect scan + banners + version)
 pyscan scan scanme.nmap.org -p 22,80,443
+pyscan scan scanme.nmap.org --top-ports 100        # the 100 most common ports
+pyscan scan scanme.nmap.org -p 1-1024 --csv out.csv # also export CSV
 
 # other scan techniques
 pyscan scan scanme.nmap.org -p 22,80,443 --type syn      # half-open (needs root/Npcap)
@@ -191,6 +193,7 @@ src/pyscan/
 - [x] UDP scan (unprivileged, OT-aware probes: DNS/SNMP/NTP/DNP3/Modbus)
 - [x] CI (GitHub Actions: pytest + ruff on 3.11 / 3.12)
 - [x] Packet sniffer — pcap decode + mini-tshark table
+- [x] Polish: `--top-ports`, CSV export
 - [ ] Packet sniffer — live capture + Textual TUI
 
 ## Docker
