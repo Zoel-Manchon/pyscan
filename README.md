@@ -16,6 +16,8 @@ A modular, **hexagonal** port & OT-protocol scanner — a mini-Nmap built to be 
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![tests](https://img.shields.io/badge/tests-74%20passing-brightgreen)
 
+![pyscan demo](docs/demo.gif)
+
 The point of this project isn't the scanner — a TCP connect scan is ~30 lines.
 It's the **architecture**: a clean ports-and-adapters layout where every new
 scan technique, protocol, output format, and discovery method is a drop-in, and
