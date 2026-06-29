@@ -1,19 +1,10 @@
 ```
-       .-~~~-.                  .-~~~-.
-      /  _ _  \                /  _ _  \
-     |  / o \  |              |  / o \  |
-   __|  \   /  |              |  \   /  |__
->='   \  '-'  /                \  '-'  /   '=<
-       '~. .~'                  '~. .~'
-       .-' '-.                  .-' '-.
-      /  ___  \                /  ___  \
-     |  /   \  |              |  /   \  |
-      \ \   / /                \ \   / /
-       '~'-'~'                  '~'-'~'
-            _ __ _  _ ___ __ __ _ _ _
-           | '_ \ || (_-</ _/ _` | ' \
-           | .__/\_, /__/\__\__,_|_||_|
-           |_|   |__/
+██████╗ ██╗   ██╗███████╗ ██████╗ █████╗ ███╗   ██╗
+██╔══██╗╚██╗ ██╔╝██╔════╝██╔════╝██╔══██╗████╗  ██║
+██████╔╝ ╚████╔╝ ███████╗██║     ███████║██╔██╗ ██║
+██╔═══╝   ╚██╔╝  ╚════██║██║     ██╔══██║██║╚██╗██║
+██║        ██║   ███████║╚██████╗██║  ██║██║ ╚████║
+╚═╝        ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝
 ```
 
 # pyscan
@@ -23,7 +14,7 @@ A modular, **hexagonal** port & OT-protocol scanner — a mini-Nmap built to be 
 ![CI](https://github.com/Zoel-Manchon/pyscan/actions/workflows/ci.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.11+-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![tests](https://img.shields.io/badge/tests-73%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-74%20passing-brightgreen)
 
 The point of this project isn't the scanner — a TCP connect scan is ~30 lines.
 It's the **architecture**: a clean ports-and-adapters layout where every new
@@ -50,15 +41,17 @@ small hexagon.
   - **IEC 60870-5-104** — TESTFR liveness check
   - **S7comm** — module order-number via SZL read
 - **Packet sniffer** — decode a `.pcap` into a mini-tshark table
-  (Ethernet/IPv4/TCP/UDP/ICMP/ARP), filter by protocol
+  (Ethernet/IPv4/TCP/UDP/ICMP/ARP), or watch traffic live in a scrolling
+  **Textual TUI** (`--tui` / `--live`); pcap reading is unprivileged, live
+  capture needs root
 - **Output** — a pretty `rich` terminal table *and* machine-readable JSON
-- **73 tests**, mostly pure-unit, no network required, run in CI on 3.11 & 3.12
+- **74 tests**, mostly pure-unit, no network required, run in CI on 3.11 & 3.12
 
 ## Quick start
 
 ```bash
 pip install -e ".[dev]"     # or: make dev
-pytest -q                   # 73 passing
+pytest -q                   # 74 passing
 ```
 
 ```bash
@@ -85,6 +78,8 @@ pyscan scan 127.0.0.1 -p 102   --type s7comm
 # packet sniffer — decode a capture file
 pyscan sniff capture.pcap
 pyscan sniff capture.pcap --proto tcp --count 50
+pyscan sniff capture.pcap --tui              # scrolling TUI view of a capture
+sudo pyscan sniff --live --iface eth0 --tui  # live capture (Linux, root)
 
 pyscan version        # the snakes
 pyscan strategies     # list scan techniques
@@ -94,6 +89,19 @@ pyscan strategies     # list scan techniques
 > `scanme.nmap.org` exists precisely for practice. OT identification is
 > read-only and meant for **simulators** — on live ICS gear the scan can *be*
 > the incident. Unsolicited scanning of third-party networks can be illegal.
+
+## Lab: a Modbus target to scan
+
+`tools/modbus_sim.py` is a self-contained Modbus/TCP simulator — a fake
+energy-substation RTU — so the OT scanner has something real to identify,
+and so you can capture/analyse Modbus traffic for practice.
+
+```bash
+pip install -e ".[lab]"            # installs pymodbus
+python3 tools/modbus_sim.py         # listens on 127.0.0.1:5020
+# in another terminal:
+pyscan scan 127.0.0.1 -p 5020 --type modbus   # -> pyscan-lab VPLC-01 1.4.2
+```
 
 ## Architecture
 
@@ -166,8 +174,8 @@ src/pyscan/
 ├── adapters/               all I/O lives here
 │   ├── strategies/             tcp_connect · syn · udp · modbus · iec104 · s7comm (+ registry)
 │   ├── discovery/              tcp_ping
-│   ├── capture/                pcap_reader
-│   └── output/                 table · json · network_table · network_json · packet_table
+│   ├── capture/                pcap_reader · live_capture
+│   └── output/                 table · json · network_* · packet_table · sniff_tui (Textual)
 └── cli/                        main (Typer) · banner (cobras)
 ```
 
@@ -195,7 +203,7 @@ src/pyscan/
 - [x] CI (GitHub Actions: pytest + ruff on 3.11 / 3.12)
 - [x] Packet sniffer — pcap decode + mini-tshark table
 - [x] Polish: `--top-ports`, CSV export, `--max-rate` throttle
-- [ ] Packet sniffer — live capture + Textual TUI
+- [x] Packet sniffer — live capture + Textual TUI
 
 ## Docker
 
@@ -216,7 +224,8 @@ which is what Kubernetes is for.
 `tcp-connect`, `udp`, `tcp-ping` discovery, and reading a `.pcap` all use
 ordinary kernel sockets / file I/O — **no root required**. The `syn` scan crafts
 raw packets and *does* need elevated rights (Linux: `sudo`; Windows: admin +
-Npcap; or run it from WSL2) — that's the OS gating raw sockets, not Python.
+Npcap; or run it from WSL2) — as does live capture (`--live`, Linux AF_PACKET).
+That's the OS gating raw sockets, not Python.
 pyscan prints a clear hint instead of a traceback when run without them.
 
 ## License

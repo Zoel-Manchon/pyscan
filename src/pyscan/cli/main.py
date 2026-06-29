@@ -166,13 +166,37 @@ def sweep(
 
 @app.command()
 def sniff(
-    pcap: Path = typer.Argument(..., help="Path to a .pcap capture file."),
+    pcap: Optional[Path] = typer.Argument(None, help="Path to a .pcap file (omit with --live)."),
     proto: Optional[str] = typer.Option(
         None, "--proto", help="Only show this protocol (tcp/udp/icmp/arp)."
     ),
     count: Optional[int] = typer.Option(None, "--count", "-n", help="Stop after N packets."),
+    tui: bool = typer.Option(False, "--tui", help="Open the live scrolling TUI."),
+    live: bool = typer.Option(False, "--live", help="Capture live (Linux, root)."),
+    iface: Optional[str] = typer.Option(None, "--iface", "-i", help="Interface, e.g. eth0."),
 ) -> None:
-    """Decode and display packets from a .pcap file (mini-tshark)."""
+    """Decode packets from a .pcap (table or --tui), or capture live (--live)."""
+    if live:
+        from pyscan.adapters.capture.live_capture import live_capture
+        try:
+            source = live_capture(iface)
+        except RuntimeError as exc:
+            typer.echo(f"error: {exc}")
+            raise typer.Exit(code=1)
+        _run_tui(source, f"pyscan sniff · live{(' · ' + iface) if iface else ''}")
+        return
+
+    if pcap is None:
+        raise typer.BadParameter("Provide a .pcap file, or use --live to capture.")
+
+    if tui:
+        try:
+            frames = list(read_pcap(pcap))
+        except (ValueError, FileNotFoundError, OSError) as exc:
+            raise typer.BadParameter(str(exc))
+        _run_tui(iter(frames), f"pyscan sniff · {pcap.name}")
+        return
+
     want = proto.upper() if proto else None
     packets = []
     try:
@@ -186,6 +210,15 @@ def sniff(
     except (ValueError, FileNotFoundError, OSError) as exc:
         raise typer.BadParameter(str(exc))
     PacketTableSink().emit(packets)
+
+
+def _run_tui(source, title: str) -> None:
+    try:
+        from pyscan.adapters.output.sniff_tui import run_sniff_tui
+    except ImportError:
+        typer.echo("error: the TUI needs textual. Install:  pip install 'pyscan[tui]'")
+        raise typer.Exit(code=1)
+    run_sniff_tui(source, title)
 
 
 @app.command(name="strategies")
