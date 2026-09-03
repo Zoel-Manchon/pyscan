@@ -17,13 +17,11 @@ Teclas: [q] salir · raton o Tab para navegar · botones para todo.
 """
 from datetime import datetime, timezone
 
-from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.widgets import (Header, Footer, Button, Static, RichLog,
-                             DataTable, Input, Label, TabbedContent, TabPane)
-from textual import on, work
-
 from otcore import Detector
+from textual import on, work
+from textual.app import App, ComposeResult
+from textual.containers import Horizontal, VerticalScroll
+from textual.widgets import Button, DataTable, Footer, Header, Input, RichLog, Static, TabbedContent, TabPane
 
 SEV_COLOR = {"CRIT": "red", "ALTO": "red", "MEDIO": "yellow"}
 
@@ -51,12 +49,24 @@ FILTERS = """[b yellow]FILTROS WIRESHARK[/]  (barra de display filter)
 [dim]Baseline SIEMPRE primero: Statistics > Conversations / Endpoints.[/]"""
 
 ATTACK_ROWS = [
-    ("Escaneo / recon", "SYN a puertos OT o FC43 / C_IC(100) para enumerar", "Marca el origen. Es el preludio. Vigilalo"),
-    ("Escritura Modbus", "Origen != HMI envia FC 5/6/15/16", "Aisla origen por ACL. NO reinicies el PLC"),
-    ("Comando IEC-104", "C_SC(45)/C_DC(46)/C_SE = control de subestacion", "Origen ilegitimo = Industroyer. No cortes el proceso"),
-    ("Silenciar telemetria", "STOPDT inesperado / supresion de alarmas", "Correlaciona: acompana a un comando. No te fies de 'todo verde'"),
-    ("S7 / stop de CPU", "job S7 stop o download de bloque", "Escritura de logica = sabotaje. Aisla; preserva evidencia"),
-    ("Acceso inicial (IT)", "Creds en claro o RDP a estacion de ingenieria", "Detecta el pivote IT->OT en la IDMZ. Corta la sesion"),
+    ("Escaneo / recon",
+     "SYN a puertos OT o FC43 / C_IC(100) para enumerar",
+     "Marca el origen. Es el preludio. Vigilalo"),
+    ("Escritura Modbus",
+     "Origen != HMI envia FC 5/6/15/16",
+     "Aisla origen por ACL. NO reinicies el PLC"),
+    ("Comando IEC-104",
+     "C_SC(45)/C_DC(46)/C_SE = control de subestacion",
+     "Origen ilegitimo = Industroyer. No cortes el proceso"),
+    ("Silenciar telemetria",
+     "STOPDT inesperado / supresion de alarmas",
+     "Correlaciona: acompana a un comando. No te fies de 'todo verde'"),
+    ("S7 / stop de CPU",
+     "job S7 stop o download de bloque",
+     "Escritura de logica = sabotaje. Aisla; preserva evidencia"),
+    ("Acceso inicial (IT)",
+     "Creds en claro o RDP a estacion de ingenieria",
+     "Detecta el pivote IT->OT en la IDMZ. Corta la sesion"),
 ]
 
 ATTCK = """[b yellow]MITRE ATT&CK for ICS · 12 tacticas[/]
@@ -243,8 +253,10 @@ class OTCommand(App):
     @on(Button.Pressed, "#stop")
     def _stop(self):
         if self.sniffer:
-            try: self.sniffer.stop()
-            except Exception: pass
+            try:
+                self.sniffer.stop()
+            except Exception:
+                pass
             self.sniffer = None
             self.alog("[yellow]■ captura detenida[/]")
             self.set_stats("motor detenido")
@@ -318,7 +330,7 @@ class OTCommand(App):
             "## 2 · Indicadores (IOC)",
             f"- Origen(es) hostil(es): `{iocs_src}`",
             f"- Funciones / TypeIDs vistos: `{iocs_fc}`",
-            f"- Puertos OT: 502 (Modbus) · 2404 (IEC-104) · 102 (S7)",
+            "- Puertos OT: 502 (Modbus) · 2404 (IEC-104) · 102 (S7)",
             "",
             "## 3 · Linea temporal (UTC)",
         ]

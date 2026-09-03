@@ -9,7 +9,7 @@ Cada alerta:
   {sev, src, dst, proto, what, attack, action}
   sev in {CRIT, ALTO, MEDIO}
 """
-from scapy.all import TCP, IP, Raw, rdpcap
+from scapy.all import IP, TCP, Raw, rdpcap
 
 MODBUS_WRITE = {5:"Write Single Coil",6:"Write Single Register",
                 15:"Write Multiple Coils",16:"Write Multiple Registers"}
@@ -85,9 +85,11 @@ class Detector:
                         out.append(self._a(
                             "CRIT" if cmd else "MEDIO", src, dst, "IEC-104",
                             f"{'COMANDO DE CONTROL' if cmd else 'Recon (interrogacion)'} TypeID {tid}: {IEC_CMD[tid]}",
-                            "Impair Process Control / Unauthorized Command Message" if cmd else "Discovery / Collection",
-                            "Comando legitimo de origen ilegitimo = firma Industroyer. Aisla origen; NO cortes el proceso"
-                            if cmd else "Interrogacion desde origen no-HMI: suele preceder al comando"))
+                            ("Impair Process Control / Unauthorized Command Message"
+                             if cmd else "Discovery / Collection"),
+                            ("Comando legitimo de origen ilegitimo = firma Industroyer. "
+                             "Aisla origen; NO cortes el proceso") if cmd
+                            else "Interrogacion desde origen no-HMI: suele preceder al comando"))
             elif ctrl0 & 0x03 == 0x03 and ctrl0 == 0x13:  # STOPDT act
                 out.append(self._a("MEDIO", src, dst, "IEC-104",
                     "STOPDT act: intento de cortar el reporte",

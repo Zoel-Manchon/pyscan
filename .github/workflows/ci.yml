@@ -20,6 +20,6 @@ jobs:
       - name: Install
         run: pip install -e ".[dev]"
       - name: Lint (ruff)
-        run: ruff check src/ tests/
+        run: ruff check src/ tests/ otkit/
       - name: Test (pytest)
         run: pytest -q

@@ -6,18 +6,32 @@ otwatch.py  ·  Mini-IDS OT (CLI) para Blue Team.  Usa el motor de otcore.py.
   En vivo (sudo):    sudo python3 otwatch.py --iface eth0
   Baseline propio:   python3 otwatch.py capture.pcap --hmi 10.10.30.10 --plc 10.10.30.21,10.10.40.7
 """
-import sys, argparse
+import argparse
+import sys
+
 from otcore import Detector
 
+
 class C:
-    R="\033[91m"; Y="\033[93m"; G="\033[92m"; B="\033[96m"; DIM="\033[2m"; X="\033[0m"; BOLD="\033[1m"
+    R = "\033[91m"
+    Y = "\033[93m"
+    G = "\033[92m"
+    B = "\033[96m"
+    DIM = "\033[2m"
+    X = "\033[0m"
+    BOLD = "\033[1m"
+
+
 if not sys.stdout.isatty():
     for k in list(vars(C)):
-        if not k.startswith("_"): setattr(C, k, "")
+        if not k.startswith("_"):
+            setattr(C, k, "")
 
 def show(a):
-    col = {"CRIT":C.R,"ALTO":C.R,"MEDIO":C.Y}.get(a["sev"], C.B)
-    print(f'{col}{C.BOLD}[{a["sev"]:>5}]{C.X} {C.BOLD}{a["src"]:>15} -> {a["dst"]:<15}{C.X} {C.B}{a["proto"]}{C.X}  {a["what"]}')
+    col = {"CRIT": C.R, "ALTO": C.R, "MEDIO": C.Y}.get(a["sev"], C.B)
+    print(f'{col}{C.BOLD}[{a["sev"]:>5}]{C.X} '
+          f'{C.BOLD}{a["src"]:>15} -> {a["dst"]:<15}{C.X} '
+          f'{C.B}{a["proto"]}{C.X}  {a["what"]}')
     print(f'        {C.DIM}ATT&CK:{C.X} {a["attack"]}    {C.G}Accion:{C.X} {a["action"]}')
 
 def main():
@@ -37,7 +51,8 @@ def main():
         sniff(iface=a.iface, store=False, filter="tcp port 502 or tcp port 2404 or tcp port 102",
               prn=lambda p: [show(x) for x in det.feed(p)])
     elif a.pcap:
-        for al in det.from_pcap(a.pcap): show(al)
+        for al in det.from_pcap(a.pcap):
+            show(al)
     else:
         ap.error("indica un .pcap o --iface")
     print(f'\n{C.BOLD}-- {det.packets} paquetes · {det.alerts} alertas --{C.X}')
