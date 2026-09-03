@@ -16,3 +16,10 @@ venv/
 *.scan.json
 net.json
 out.json
+
+# Editor
+*.code-workspace
+
+# Capturas grandes de práctica (regenerables con otkit/otsim.py)
+otkit/captura.pcap
+otkit/classic_capture.pcapng
