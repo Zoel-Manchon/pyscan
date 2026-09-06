@@ -21,6 +21,27 @@ A modular, **hexagonal** port & OT-protocol scanner — a mini-Nmap built to be 
 
 ![pyscan demo](docs/demo.gif)
 
+---
+
+## At a glance
+
+|  |  |
+| --- | --- |
+| **What it is** | A port and OT-protocol scanner: six scan techniques, five protocols, host discovery over CIDR, and a packet sniffer with a live TUI. |
+| **The one idea** | The scanner is not the point — a TCP connect scan is about thirty lines. The point is that **the engine never changes.** A new technique is a new file and one `@register` line; a new output format is one interface; a new product fingerprint is one regex row. |
+| **Where the line is** | Probing (I/O) is kept apart from identifying (pure logic), so every stage is testable and replaceable on its own. The domain knows nothing about sockets, the terminal or Typer. |
+| **Built with** | Python 3.11+ · asyncio · scapy · Typer · rich · Textual |
+| **Size** | **74 tests**, mostly pure unit tests with no network, on 3.11 and 3.12 |
+| **OT posture** | Read-only, and meant for simulators. On live ICS gear the scan can *be* the incident. |
+| **Run it** | `pip install -e ".[dev]"` then `pyscan scan scanme.nmap.org --top-ports 100` |
+
+**Contents** — [What works now](#what-works-now) · [Quick start](#quick-start) ·
+[Lab target](#lab-a-modbus-target-to-scan) · [Architecture](#architecture) ·
+[Project layout](#project-layout) · [How to extend](#how-to-extend) ·
+[Docker](#docker) · [Privileges](#notes-on-privileges) · [Status](#status)
+
+---
+
 The point of this project isn't the scanner — a TCP connect scan is ~30 lines.
 It's the **architecture**: a clean ports-and-adapters layout where every new
 scan technique, protocol, output format, and discovery method is a drop-in, and
@@ -194,7 +215,10 @@ src/pyscan/
 | A discovery method (ICMP, ARP) | implement `HostDiscovery` | no |
 | Detection for a new product | one regex row in `fingerprint.py` | no |
 
-## Roadmap
+## Status
+
+Everything on the original roadmap shipped. 74 tests green, ruff clean, CI on 3.11
+and 3.12.
 
 - [x] TCP connect scan, async concurrency, table + JSON
 - [x] Banner grabbing + HTTP nudge
@@ -209,6 +233,10 @@ src/pyscan/
 - [x] Packet sniffer — pcap decode + mini-tshark table
 - [x] Polish: `--top-ports`, CSV export, `--max-rate` throttle
 - [x] Packet sniffer — live capture + Textual TUI
+
+What it deliberately does not do: **write** to an OT device, ever. Identification is
+read-only by design, because the difference between reading a device ID and writing a
+coil is the difference between an audit and an outage.
 
 ## Docker
 
