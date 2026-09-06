@@ -9,6 +9,13 @@
 
 # pyscan
 
+[![CI](https://github.com/Zoel-Manchon/pyscan/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Zoel-Manchon/pyscan/actions/workflows/ci.yml)
+![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)
+![Scapy](https://img.shields.io/badge/Scapy-6E7681?style=flat-square)
+![Textual](https://img.shields.io/badge/Textual-5A32A3?style=flat-square)
+![OT Modbus - IEC-104 - S7comm](https://img.shields.io/badge/OT-Modbus_--_IEC--104_--_S7comm-E8B339?style=flat-square)
+![license MIT](https://img.shields.io/badge/license-MIT-2A3340?style=flat-square)
+
 A modular, **hexagonal** port & OT-protocol scanner — a mini-Nmap built to be expanded.
 
 
