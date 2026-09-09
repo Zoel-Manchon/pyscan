@@ -8,12 +8,27 @@ traceback, and that the commands people actually type produce output.
 from __future__ import annotations
 
 import json
+import re
 
 from typer.testing import CliRunner
 
 from pyscan.cli.main import app
 
 runner = CliRunner()
+
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def plain(result) -> str:
+    """A command's output with terminal styling removed.
+
+    Rich decides whether to colour from the terminal it believes it is writing
+    to, and a CI runner and a laptop disagree about that. Styling is not what
+    these tests are about, and Rich lands escape codes INSIDE words like
+    --live - so a raw substring check passes locally and fails in CI for
+    reasons that have nothing to do with the CLI.
+    """
+    return _ANSI.sub("", result.output)
 
 
 def lab_capture(tmp_path):
@@ -28,7 +43,7 @@ def lab_capture(tmp_path):
 def test_bare_invocation_shows_the_splash_and_help():
     result = runner.invoke(app, [])
     assert result.exit_code == 0
-    assert "scan" in result.stdout and "sniff" in result.stdout
+    assert "scan" in plain(result) and "sniff" in plain(result)
 
 
 def test_version_command():
@@ -40,7 +55,7 @@ def test_strategies_lists_every_registered_technique():
     result = runner.invoke(app, ["strategies"])
     assert result.exit_code == 0
     for name in ("tcp-connect", "syn", "udp", "modbus", "iec104", "s7comm"):
-        assert name in result.stdout
+        assert name in plain(result)
 
 
 # --------------------------------------------------------------------------
@@ -49,13 +64,13 @@ def test_strategies_lists_every_registered_technique():
 def test_scan_rejects_a_cidr_and_points_at_sweep():
     result = runner.invoke(app, ["scan", "192.168.1.0/24"])
     assert result.exit_code != 0
-    assert "pyscan sweep" in result.output
+    assert "pyscan sweep" in plain(result)
 
 
 def test_scan_rejects_an_unknown_strategy():
     result = runner.invoke(app, ["scan", "127.0.0.1", "--type", "nope"])
     assert result.exit_code != 0
-    assert "Unknown scan strategy" in result.output
+    assert "Unknown scan strategy" in plain(result)
 
 
 def test_scan_rejects_a_bad_port_spec():
@@ -74,7 +89,7 @@ def test_sweep_rejects_a_bad_port_spec():
 def test_sniff_without_a_file_or_live_fails_cleanly():
     result = runner.invoke(app, ["sniff"])
     assert result.exit_code != 0
-    assert "--live" in result.output
+    assert "--live" in plain(result)
 
 
 def test_sniff_rejects_a_file_that_is_not_a_capture(tmp_path):
@@ -82,7 +97,7 @@ def test_sniff_rejects_a_file_that_is_not_a_capture(tmp_path):
     junk.write_bytes(b"definitely not a capture file")
     result = runner.invoke(app, ["sniff", str(junk)])
     assert result.exit_code != 0
-    assert "magic" in result.output
+    assert "magic" in plain(result)
 
 
 def test_monitor_rejects_an_unknown_severity(tmp_path):
@@ -90,7 +105,7 @@ def test_monitor_rejects_an_unknown_severity(tmp_path):
         app, ["monitor", str(lab_capture(tmp_path)), "--min-severity", "URGENT"]
     )
     assert result.exit_code != 0
-    assert "min-severity" in result.output
+    assert "min-severity" in plain(result)
 
 
 def test_monitor_without_a_capture_or_live_fails_cleanly():
@@ -106,19 +121,19 @@ def test_lab_writes_a_capture(tmp_path):
     result = runner.invoke(app, ["lab", str(path)])
     assert result.exit_code == 0
     assert path.exists() and path.stat().st_size > 24
-    assert "packets written" in result.stdout
+    assert "packets written" in plain(result)
 
 
 def test_sniff_prints_a_packet_table(tmp_path):
     result = runner.invoke(app, ["sniff", str(lab_capture(tmp_path)), "-n", "3"])
     assert result.exit_code == 0
-    assert "10.10.30" in result.stdout
+    assert "10.10.30" in plain(result)
 
 
 def test_sniff_can_filter_by_protocol(tmp_path):
     result = runner.invoke(app, ["sniff", str(lab_capture(tmp_path)), "--proto", "udp"])
     assert result.exit_code == 0
-    assert "No packets matched" in result.stdout  # the lab capture is all TCP
+    assert "No packets matched" in plain(result)  # the lab capture is all TCP
 
 
 def test_monitor_finds_the_attack_in_the_lab_capture(tmp_path):
@@ -131,9 +146,9 @@ def test_monitor_finds_the_attack_in_the_lab_capture(tmp_path):
         ],
     )
     assert result.exit_code == 0
-    assert "CRITICAL" in result.stdout
-    assert "T0855" in result.stdout
-    assert "10.10.30.142" in result.stdout
+    assert "CRITICAL" in plain(result)
+    assert "T0855" in plain(result)
+    assert "10.10.30.142" in plain(result)
 
 
 def test_monitor_min_severity_filters_the_output(tmp_path):
@@ -142,7 +157,7 @@ def test_monitor_min_severity_filters_the_output(tmp_path):
     critical = runner.invoke(
         app, ["monitor", str(capture), "--hmi", "10.10.30.10", "--min-severity", "CRITICAL"]
     )
-    assert critical.stdout.count("ATT&CK:") < everything.stdout.count("ATT&CK:")
+    assert plain(critical).count("ATT&CK:") < plain(everything).count("ATT&CK:")
 
 
 def test_monitor_writes_an_incident_report(tmp_path):
@@ -167,7 +182,7 @@ def test_scan_reports_an_open_port(tcp_server):
     host, port = tcp_server
     result = runner.invoke(app, ["scan", host, "-p", str(port), "--no-banner"])
     assert result.exit_code == 0
-    assert str(port) in result.stdout and "open" in result.stdout
+    assert str(port) in plain(result) and "open" in plain(result)
 
 
 def test_scan_writes_json_and_csv(tcp_server, tmp_path):

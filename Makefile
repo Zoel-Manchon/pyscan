@@ -13,7 +13,9 @@ dev:            ## editable install + every development dependency
 	pip install -e ".[dev,tui]"
 
 test:           ## run the suite with the coverage gate
-	pytest -q
+	# FORCE_COLOR matches how CI renders: Rich colours its output there and not
+	# in a plain local shell, and that difference has already hidden a failure.
+	FORCE_COLOR=1 pytest -q
 
 lint:           ## ruff
 	ruff check src/ tests/
