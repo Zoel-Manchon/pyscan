@@ -3,11 +3,17 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
 .git/
+.github/
 .gitignore
 tests/
+docs/
+otkit/
 *.egg-info/
 build/
 dist/
 *.json
+*.pcap
+*.pcapng
 Makefile

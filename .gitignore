@@ -20,6 +20,11 @@ out.json
 # Editor
 *.code-workspace
 
-# Capturas grandes de práctica (regenerables con otkit/otsim.py)
-otkit/captura.pcap
-otkit/classic_capture.pcapng
+# The OT exercise workspace: captures and exported reports are regenerable
+# (`pyscan lab capture.pcap`) and can be large. The README stays tracked.
+otkit/*.pcap
+otkit/*.pcapng
+otkit/incident_*.md
+capture.pcap
+coverage.xml
+.coverage

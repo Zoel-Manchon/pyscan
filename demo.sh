@@ -52,7 +52,11 @@ trap 'kill "$SIM_PID" 2>/dev/null' EXIT
 sleep 2.5  # let the simulator come up
 run pyscan scan 127.0.0.1 -p 5020 --type modbus
 
-# 4) the finale: the live packet TUI (press q to quit)
+# 4) the blue-team half: replay an attack through the OT detection engine
+run pyscan lab /tmp/pyscan_demo.pcap
+run pyscan monitor /tmp/pyscan_demo.pcap --hmi 10.10.30.10 --plc 10.10.30.21,10.10.40.7 --min-severity CRITICAL
+
+# 5) the finale: the live packet TUI (press q to quit)
 printf "\n${GREEN}\$ ${RESET}pyscan sniff sample.pcap --tui   ${DIM}(press q to quit)${RESET}\n"
 sleep 0.6
 pyscan sniff sample.pcap --tui

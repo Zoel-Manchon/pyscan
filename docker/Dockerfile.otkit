@@ -1,30 +1,30 @@
-# pyscan-otkit — imagen todo-en-uno para el ejercicio Blue Team.
-# Incluye: pyscan (CLI) + el kit otkit (TUI/otwatch/otsim) + tshark + nmap.
-# Construye desde la RAÍZ del repo:  docker build -f docker/Dockerfile.otkit -t pyscan-otkit .
+# pyscan-otkit — the all-in-one image for a blue-team OT exercise.
+# Ships pyscan with every extra, plus tshark and nmap for cross-checking.
+# Build from the REPOSITORY ROOT:
+#     docker build -f docker/Dockerfile.otkit -t pyscan-otkit .
 FROM python:3.12-slim
 
-ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1
 
-# Herramientas de red: tshark (dissectors OT), nmap (inventario), libpcap (scapy live), iproute2 (ip/ss)
+# tshark for its OT dissectors, nmap for a second opinion on inventory,
+# libpcap for scapy's raw SYN scan, iproute2 for ip/ss.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         tshark nmap libpcap0.8 iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# 1) Instala pyscan con los extras que necesita el kit:
-#    syn -> scapy (sniff/otwatch/otsim) · tui -> textual (TUI) · lab -> pymodbus (modbus_sim)
+# syn -> scapy (raw SYN scan) - tui -> textual (both TUIs) - lab -> pymodbus (the RTU simulator)
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install --no-cache-dir ".[syn,tui,lab]" pytest pytest-asyncio
+RUN pip install --no-cache-dir ".[syn,tui,lab]"
 
-# 2) Añade el kit Blue Team y las tools
-COPY otkit ./otkit
 COPY tools ./tools
 
-# otcore.py se importa como módulo suelto -> lo dejamos en el path
-ENV PYTHONPATH=/app/otkit
+# The exercise workspace: captures and exported incident reports land here, and
+# docker-compose mounts it from the host so both outlive the container.
 WORKDIR /app/otkit
 
-# Por defecto abre el centro de mando (los subcomandos los pone el menú / compose run)
-CMD ["python", "ot_command.py"]
+# Default to the OT command centre; compose/the menu override with a subcommand.
+CMD ["pyscan", "monitor", "--tui"]

@@ -4,7 +4,8 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install --no-cache-dir .
+# The TUI extra is included so `sniff --tui` and `monitor --tui` work out of the box.
+RUN pip install --no-cache-dir ".[tui]"
 
 # pyscan is a CLI: the image IS the command.
 ENTRYPOINT ["pyscan"]

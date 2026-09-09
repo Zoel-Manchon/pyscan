@@ -1,90 +1,99 @@
-# Docker + centro de mando por menú
+# Running pyscan in Docker
 
-Todo el ejercicio desde un solo comando, sin ejecutar cosas una por una.
+Two images, for two different jobs.
 
-## Dónde va cada archivo (en la raíz del repo `pyscan/`)
+| Image | Built from | What it is for |
+| --- | --- | --- |
+| `pyscan` | `Dockerfile` | The scanner as a command. Small, no system packages. |
+| `pyscan-otkit` | `docker/Dockerfile.otkit` | The full exercise kit: pyscan with every extra, plus tshark and nmap. |
 
-```
-pyscan/
-├── docker/
-│   └── Dockerfile.otkit      ← NUEVO  (imagen todo-en-uno)
-├── docker-compose.yml        ← NUEVO
-├── otkit.sh                  ← NUEVO  (el menú)
-├── Makefile                  ← REEMPLAZA el tuyo (conserva tus targets + añade Docker)
-├── DOCKER.md                 ← NUEVO  (esta guía)
-├── README.md                 ← debe existir (lo usa pyproject/Dockerfile) *
-├── pyproject.toml
-├── src/pyscan/…
-├── otkit/                    ← tu kit Blue Team (ya está)
-└── tools/modbus_sim.py
-```
+---
 
-\* Si al construir ves `readme file does not exist`, es que falta el README de la raíz. Arréglalo en 1 línea:
-```bash
-[ -f README.md ] || printf '# pyscan\n\nHexagonal port & OT-protocol scanner + Blue Team kit.\n' > README.md
-```
-
-## Requisitos
-
-- Docker con Compose v2 (`docker compose version`).
-- **Linux** para la captura en vivo: el compose usa `network_mode: host` para ver la NIC real. En tu Acer Nitro con Ubuntu es justo lo que quieres.
-
-## El único comando que necesitas
+## The scanner, as a command
 
 ```bash
-chmod +x otkit.sh
-./otkit.sh            # o:  make menu
+docker build -t pyscan .
+docker run --rm pyscan scan scanme.nmap.org -p 22,80,443
+docker run --rm pyscan sweep 192.168.1.0/24 --max-rate 5
 ```
 
-Te sale el menú. La **primera vez pulsa `b`** para construir la imagen (2-3 min). Después:
-
-```
- b) Construir / actualizar la imagen Docker
- 1) TUI centro de mando   (EN VIVO: sniff real de la NIC)
- 2) TUI centro de mando   (práctica: dentro pulsa Replay pcap)
- 3) Generar captura de ejemplo (otsim -> capture.pcap)
- 4) Watch CLI en vivo (mini-IDS sin TUI)
- 5) pyscan sweep   (inventario de la red)
- 6) pyscan scan    (identificar un host / PLC)
- 7) pyscan sniff --live --tui
- 8) Ejecutar tests
- 9) Shell dentro del contenedor
- 0) Salir
-```
-
-`capture.pcap` y los `informe_*.md` que exportes desde la TUI aparecen en tu carpeta `otkit/` del host (va montada como volumen).
-
-## Si prefieres `make` en vez del menú
+The image *is* the command — `pyscan` is the entrypoint, so anything you would
+type after `pyscan` goes after the image name. To read a capture from your
+machine, mount the directory it lives in:
 
 ```bash
-make build                      # construir imagen
-make tui                        # abrir el centro de mando
-make sim                        # generar capture.pcap
-make watch IFACE=eth0 HMI=10.0.0.5 PLC=10.0.0.21,10.0.0.7
+docker run --rm -v "$PWD:/data" -w /data pyscan sniff capture.pcapng
+docker run --rm -v "$PWD:/data" -w /data pyscan monitor capture.pcapng --hmi 10.10.30.10
+```
+
+This is deliberately not orchestrated. There is no long-running service to
+scale here, which is the problem Kubernetes exists to solve.
+
+---
+
+## The exercise kit
+
+One menu drives everything:
+
+```bash
+./otkit.sh          # or: make menu
+```
+
+```
+  b) Build / refresh the Docker image
+  1) OT command centre, LIVE   (real capture off the NIC)
+  2) OT command centre, replay (practise against capture.pcap)
+  3) Generate a practice capture with an attack inside it
+  4) Mini-IDS in the terminal, live (no TUI)
+  5) pyscan sweep   (network inventory, throttled)
+  6) pyscan scan    (identify one host / PLC)
+  7) pyscan sniff --live --tui
+  8) Run the test suite
+  9) Shell inside the container
+```
+
+Press `b` once to build, then work from the menu. Captures and the incident
+reports you export land in `./otkit/` on your host, because that directory is
+mounted as a volume — they outlive the container.
+
+### The same thing without the menu
+
+```bash
+make build                                   # build the image
+make sim                                     # generate capture.pcap
+make tui                                     # OT command centre
+make watch IFACE=eth0 HMI=10.10.30.10 PLC=10.10.30.21
 make sweep CIDR=10.10.30.0/24
-make scan  HOST=10.10.30.21 PORT=502 TYPE=modbus
-make sniff IFACE=eth0
-make dtest                      # tests dentro del contenedor
-make shell
+make scan HOST=10.10.30.21 PORT=502 TYPE=modbus
+make dtest                                   # run the test suite in the container
 ```
 
-## Fallback sin menú ni make (docker directo)
+---
 
-```bash
-docker build -f docker/Dockerfile.otkit -t pyscan-otkit .
-# TUI en vivo (host net + permisos de captura):
-docker compose run --rm otkit python ot_command.py
-# o pyscan dentro de la misma imagen:
-docker compose run --rm otkit pyscan sweep 10.10.30.0/24
+## Why the compose file looks like that
+
+```yaml
+network_mode: host
+cap_add: [NET_RAW, NET_ADMIN]
 ```
 
-## Qué lleva la imagen
+* `network_mode: host` lets the container see the real interface. Without it,
+  live capture only ever sees the container's own virtual NIC. **Linux only** —
+  on Docker Desktop for macOS and Windows the container runs inside a VM, so
+  there is no host NIC to see. Read a capture file instead.
+* `NET_RAW` / `NET_ADMIN` allow packet capture and raw-socket scanning without
+  handing the container `--privileged`, which would give it far more than it
+  needs.
 
-pyscan instalado con extras `syn` (scapy), `tui` (textual) y `lab` (pymodbus), más **tshark** y **nmap**.
-Es decir: en el mismo contenedor tienes pyscan, el kit otkit (TUI/otwatch/otsim), Wireshark-CLI y nmap.
-`PYTHONPATH=/app/otkit` para que `otcore` se importe suelto, igual que en local.
+Live capture still needs those capabilities *and* Linux. Everything else —
+reading captures, replaying them through the detection engine, connect scans,
+UDP scans, OT identification — works unprivileged, on any platform.
 
-## Nota de seguridad OT
+---
 
-El contenedor tiene `NET_RAW`/`NET_ADMIN` para poder capturar, no para atacar. Mantén la regla:
-**nunca escanees fuerte un PLC** (`-A`, `-sV` intenso, `-T4/5`, NSE). El menú ya lanza `pyscan scan` con `--max-rate 5`.
+## Safety
+
+OT identification is read-only by design and meant for simulators or lab
+equipment you own. On live ICS gear the scan itself can be the incident. When
+you must touch real equipment, throttle it: `--max-rate 5` is not politeness,
+it is the safety feature.

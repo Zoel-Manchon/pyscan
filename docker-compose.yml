@@ -1,9 +1,10 @@
-# docker-compose.yml — un solo servicio que lo hace todo.
-# El menú (./otkit.sh) usa `docker compose run --rm otkit <cmd>`.
+# docker-compose.yml — one service that does everything.
+# The menu (./otkit.sh) drives it with `docker compose run --rm otkit <cmd>`.
 #
-# network_mode: host  -> el contenedor ve la NIC real (necesario para sniff en vivo). Solo Linux.
-# cap_add NET_RAW/NET_ADMIN -> permite capturar/analizar tráfico sin --privileged.
-# El volumen ./otkit persiste capture.pcap y los informes (informe_*.md) en tu host.
+# network_mode: host   -> the container sees the real NIC (required for live
+#                         capture). Linux only.
+# cap_add NET_RAW/NET_ADMIN -> capture and raw-socket scanning without --privileged.
+# The ./otkit volume keeps captures and exported incident reports on your host.
 
 services:
   otkit:
