@@ -16,7 +16,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # syn -> scapy (raw SYN scan) - tui -> textual (both TUIs) - lab -> pymodbus (the RTU simulator)
-COPY pyproject.toml README.md ./
+# LICENSE is not optional here: pyproject declares it, so the build
+# backend reads it while generating metadata.
+COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
 RUN pip install --no-cache-dir ".[syn,tui,lab]"
 

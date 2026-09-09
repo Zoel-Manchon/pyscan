@@ -44,6 +44,24 @@ def tcp_server():
 
 
 @pytest.fixture
+def udp_silent():
+    """A bound UDP socket that receives and never answers. Yields (host, port).
+
+    This is how "silence" is produced deterministically. Pointing a probe at an
+    unroutable address instead would be at the mercy of the network it runs on:
+    a host that blackholes the packet gives a timeout, while one that answers
+    ENETUNREACH gives an error, and those are two different port states. A
+    bound-but-mute local socket always gives the first.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("127.0.0.1", 0))
+    try:
+        yield sock.getsockname()
+    finally:
+        sock.close()
+
+
+@pytest.fixture
 def udp_server():
     """A loopback UDP responder that echoes back whatever it is sent."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

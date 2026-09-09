@@ -185,6 +185,8 @@ async def test_tcp_connect_nudges_a_silent_http_server():
 
 
 async def test_tcp_connect_reports_a_dead_host_as_filtered():
+    # Timeout and "no route to host" are both a filtered port here, which is
+    # what makes this safe to run on any network.
     result = await get_strategy("tcp-connect").scan_port("192.0.2.1", 80, 0.2)
     assert result.state is PortState.FILTERED
 

@@ -101,7 +101,9 @@ async def test_tcp_ping_treats_a_refusal_as_alive(monkeypatch):
 
 
 async def test_tcp_ping_reports_silence_as_down():
-    # TEST-NET-1 is guaranteed unroutable, so every probe times out.
+    # TEST-NET-1 is reserved and never routable. Whether the network blackholes
+    # the packet or answers "unreachable" is up to the host running this, and
+    # both must read as down - so do not tighten this to one of them.
     assert not await TcpPingDiscovery(ping_ports=(80,)).is_up("192.0.2.1", timeout=0.2)
 
 
@@ -116,8 +118,10 @@ async def test_udp_scan_sees_a_reply_as_open(udp_server):
     assert result.latency_ms is not None
 
 
-async def test_udp_scan_reports_silence_as_open_filtered():
-    result = await UdpScan().scan_port("192.0.2.1", 9999, timeout=0.2)
+async def test_udp_scan_reports_silence_as_open_filtered(udp_silent):
+    """Silence is genuinely ambiguous in UDP, and must not be called closed."""
+    host, port = udp_silent
+    result = await UdpScan().scan_port(host, port, timeout=0.3)
     assert result.state is PortState.OPEN_FILTERED
 
 
