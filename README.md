@@ -17,10 +17,14 @@
 ![OT Modbus - IEC-104 - S7comm](https://img.shields.io/badge/OT-Modbus_--_IEC--104_--_S7comm-E8B339?style=flat-square)
 ![license MIT](https://img.shields.io/badge/license-MIT-2A3340?style=flat-square)
 
+
+
 **A port scanner, an OT protocol identifier, a packet sniffer and an ICS
 detection engine — all hanging off one small hexagon.**
 
-![pyscan demo](docs/demo.gif)
+https://github.com/user-attachments/assets/ad3e4071-137c-411f-9e3b-ee4022adcc8b
+
+<p align="center"><sub>Narrated demo and automated test suite · 58 seconds</sub></p>
 
 ---
 
