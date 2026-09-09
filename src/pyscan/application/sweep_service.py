@@ -6,6 +6,11 @@ Two bounded phases:
 
 This composes the existing single-host scanner rather than duplicating it,
 which is the payoff of having split scan_host out of run earlier.
+
+The pacing knobs (max_rate, retries) are threaded through both phases. That
+matters most exactly here: a whole-subnet sweep is the operation you least want
+running unthrottled against fragile ICS gear, and a rate cap that only worked
+for single-host scans was a safety feature with a hole in it.
 """
 
 from __future__ import annotations
@@ -13,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import time
 
+from pyscan.application.rate_limiter import AsyncRateLimiter
 from pyscan.application.scan_service import ScanService
 from pyscan.domain.models import NetworkReport, ScanReport, ScanTarget
 from pyscan.domain.ports import HostDiscovery, NetworkSink
@@ -39,16 +45,22 @@ class SweepService:
         timeout: float = 1.0,
         discover: bool = True,
         host_concurrency: int = 64,
+        max_rate: float | None = None,
+        retries: int = 0,
     ) -> NetworkReport:
         candidates = expand_targets(spec)
         t0 = time.perf_counter()
 
+        # One limiter shared by both phases and every host, so `--max-rate 5`
+        # means five probes per second across the whole sweep, not per host.
+        limiter = AsyncRateLimiter(max_rate) if max_rate else None
+
         if discover:
-            up_hosts = await self._discover(candidates, timeout, host_concurrency)
+            up_hosts = await self._discover(candidates, timeout, host_concurrency, limiter)
         else:
             up_hosts = candidates
 
-        reports = await self._scan_all(up_hosts, timeout, host_concurrency)
+        reports = await self._scan_all(up_hosts, timeout, host_concurrency, limiter, retries)
         duration = time.perf_counter() - t0
 
         report = NetworkReport(
@@ -63,11 +75,17 @@ class SweepService:
         return report
 
     async def _discover(
-        self, hosts: list[str], timeout: float, concurrency: int
+        self,
+        hosts: list[str],
+        timeout: float,
+        concurrency: int,
+        limiter: AsyncRateLimiter | None,
     ) -> list[str]:
         sem = asyncio.Semaphore(concurrency)
 
         async def check(host: str) -> tuple[str, bool]:
+            if limiter is not None:
+                await limiter.acquire()
             async with sem:
                 return host, await self._discovery.is_up(host, timeout)
 
@@ -75,16 +93,25 @@ class SweepService:
         return [host for host, up in checked if up]
 
     async def _scan_all(
-        self, hosts: list[str], timeout: float, concurrency: int
+        self,
+        hosts: list[str],
+        timeout: float,
+        concurrency: int,
+        limiter: AsyncRateLimiter | None,
+        retries: int,
     ) -> list[ScanReport]:
         sem = asyncio.Semaphore(concurrency)
 
         async def scan_one(host: str) -> ScanReport:
             async with sem:
                 target = ScanTarget(host=host, ports=self._ports)
-                # ports list is small (top ports), so scan them all at once
+                # The port list is small (top ports), so scan them all at once.
                 return await self._scanner.scan_host(
-                    target, concurrency=len(self._ports), timeout=timeout
+                    target,
+                    concurrency=len(self._ports),
+                    timeout=timeout,
+                    limiter=limiter,
+                    retries=retries,
                 )
 
         reports = await asyncio.gather(*(scan_one(h) for h in hosts))

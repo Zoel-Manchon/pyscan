@@ -6,13 +6,26 @@ sinks, so wiring it in touched zero engine code — the whole point of the hexag
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import sys
+from collections.abc import Iterator
 from pathlib import Path
+from typing import TextIO
 
 from pyscan.domain.models import ScanReport
 
 _FIELDS = ["port", "state", "service", "product", "version", "latency_ms", "banner"]
+
+
+@contextlib.contextmanager
+def _sink(path: Path | None) -> Iterator[TextIO]:
+    """A file when given a path, stdout otherwise — closing only what we opened."""
+    if path is None:
+        yield sys.stdout
+        return
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        yield handle
 
 
 class CsvSink:
@@ -20,12 +33,7 @@ class CsvSink:
         self._path = path
 
     def emit(self, report: ScanReport) -> None:
-        handle = (
-            open(self._path, "w", newline="", encoding="utf-8")
-            if self._path
-            else sys.stdout
-        )
-        try:
+        with _sink(self._path) as handle:
             writer = csv.DictWriter(handle, fieldnames=_FIELDS, extrasaction="ignore")
             writer.writeheader()
             for p in report.host.ports:
@@ -40,6 +48,3 @@ class CsvSink:
                         "banner": p.banner or "",
                     }
                 )
-        finally:
-            if self._path:
-                handle.close()

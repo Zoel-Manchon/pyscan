@@ -13,6 +13,7 @@ payoff of keeping strategies behind a registry.
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any, cast
 
 from pyscan.domain.ports import ScanStrategy
 
@@ -28,14 +29,14 @@ def register(name: str) -> Callable[[type], type]:
     return decorator
 
 
-def get_strategy(name: str, **options) -> ScanStrategy:
+def get_strategy(name: str, **options: Any) -> ScanStrategy:
     try:
         cls = _REGISTRY[name]
     except KeyError:
         raise KeyError(
             f"Unknown scan strategy {name!r}. Available: {', '.join(available())}"
         ) from None
-    return cls(**options)
+    return cast(ScanStrategy, cls(**options))
 
 
 def available() -> list[str]:

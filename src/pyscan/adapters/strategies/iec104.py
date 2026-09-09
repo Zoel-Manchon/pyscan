@@ -8,6 +8,7 @@ Even so: SIMULATORS / lab gear you own only. In OT, the scan can be the incident
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import time
 
 from pyscan.adapters.strategies.registry import register
@@ -19,7 +20,7 @@ from pyscan.domain.models import PortResult, PortState
 class Iec104Scan:
     name = "iec104"
 
-    def __init__(self, **_ignored) -> None:
+    def __init__(self, **_ignored: object) -> None:
         pass
 
     async def scan_port(self, host: str, port: int, timeout: float) -> PortResult:
@@ -28,7 +29,7 @@ class Iec104Scan:
             reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(host, port), timeout=timeout
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return PortResult(port, PortState.FILTERED)
         except ConnectionRefusedError:
             latency = (time.perf_counter() - start) * 1000
@@ -43,13 +44,11 @@ class Iec104Scan:
             await writer.drain()
             data = await asyncio.wait_for(reader.read(64), timeout=timeout)
             banner = describe(parse_response(data))
-        except (asyncio.TimeoutError, OSError):
+        except (TimeoutError, OSError):
             banner = None
 
         writer.close()
-        try:
+        with contextlib.suppress(OSError):
             await writer.wait_closed()
-        except OSError:
-            pass
 
         return PortResult(port, PortState.OPEN, latency_ms=latency, banner=banner)

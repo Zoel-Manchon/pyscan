@@ -20,6 +20,7 @@ Banner logic on OPEN ports:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import time
 
 from pyscan.adapters.strategies.registry import register
@@ -38,7 +39,7 @@ class TcpConnectScan:
         grab_banner: bool = True,
         http_probe: bool = True,
         banner_bytes: int = 512,
-        **_ignored,
+        **_ignored: object,
     ) -> None:
         self._grab_banner = grab_banner
         self._http_probe = http_probe
@@ -50,7 +51,7 @@ class TcpConnectScan:
             reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(host, port), timeout=timeout
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return PortResult(port, PortState.FILTERED)
         except ConnectionRefusedError:
             latency = (time.perf_counter() - start) * 1000
@@ -66,17 +67,15 @@ class TcpConnectScan:
                 banner = await self._nudge(reader, writer, timeout)
 
         writer.close()
-        try:
+        with contextlib.suppress(OSError):
             await writer.wait_closed()
-        except OSError:
-            pass
 
         return PortResult(port, PortState.OPEN, latency_ms=latency, banner=banner)
 
     async def _read(self, reader: asyncio.StreamReader, timeout: float) -> str | None:
         try:
             data = await asyncio.wait_for(reader.read(self._banner_bytes), timeout=timeout)
-        except (asyncio.TimeoutError, OSError):
+        except (TimeoutError, OSError):
             return None
         return self._clean(data)
 

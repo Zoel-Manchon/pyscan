@@ -10,12 +10,15 @@ means down/filtered. That's exactly nmap's TCP-ping logic, no privileges needed.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 
 DEFAULT_PING_PORTS = (80, 443, 22, 3389)
 
 
 class TcpPingDiscovery:
-    def __init__(self, ping_ports: tuple[int, ...] = DEFAULT_PING_PORTS, **_ignored) -> None:
+    def __init__(
+        self, ping_ports: tuple[int, ...] = DEFAULT_PING_PORTS, **_ignored: object
+    ) -> None:
         self._ports = tuple(ping_ports)
 
     async def is_up(self, host: str, timeout: float) -> bool:
@@ -26,13 +29,11 @@ class TcpPingDiscovery:
                 )
             except ConnectionRefusedError:
                 return True  # RST -> the host is there
-            except (asyncio.TimeoutError, OSError):
+            except (TimeoutError, OSError):
                 return False  # silence -> assume down/filtered
             writer.close()
-            try:
+            with contextlib.suppress(OSError):
                 await writer.wait_closed()
-            except OSError:
-                pass
             return True  # open handshake -> definitely up
 
         results = await asyncio.gather(*(probe(p) for p in self._ports))

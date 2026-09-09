@@ -10,6 +10,7 @@ SAFETY: SIMULATORS / lab gear you own only. Never against live OT.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import time
 
 from pyscan.adapters.strategies.registry import register
@@ -29,7 +30,7 @@ from pyscan.domain.s7comm import (
 class S7CommScan:
     name = "s7comm"
 
-    def __init__(self, *, rack: int = 0, slot: int = 2, **_ignored) -> None:
+    def __init__(self, *, rack: int = 0, slot: int = 2, **_ignored: object) -> None:
         self._rack = rack
         self._slot = slot
 
@@ -39,7 +40,7 @@ class S7CommScan:
             reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(host, port), timeout=timeout
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return PortResult(port, PortState.FILTERED)
         except ConnectionRefusedError:
             latency = (time.perf_counter() - start) * 1000
@@ -51,14 +52,17 @@ class S7CommScan:
         banner = await self._identify(reader, writer, timeout)
 
         writer.close()
-        try:
+        with contextlib.suppress(OSError):
             await writer.wait_closed()
-        except OSError:
-            pass
 
         return PortResult(port, PortState.OPEN, latency_ms=latency, banner=banner)
 
-    async def _identify(self, reader, writer, timeout) -> str | None:
+    async def _identify(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        timeout: float,
+    ) -> str | None:
         try:
             # 1. COTP connection
             writer.write(build_connection_request(self._rack, self._slot))
@@ -75,7 +79,7 @@ class S7CommScan:
             writer.write(build_read_szl())
             await writer.drain()
             response = await self._read_tpkt(reader, timeout)
-        except (asyncio.TimeoutError, OSError, asyncio.IncompleteReadError):
+        except (TimeoutError, OSError, asyncio.IncompleteReadError):
             return None
 
         info = parse_szl(response)
@@ -84,11 +88,11 @@ class S7CommScan:
         return describe(info)
 
     @staticmethod
-    async def _read_tpkt(reader, timeout) -> bytes:
+    async def _read_tpkt(reader: asyncio.StreamReader, timeout: float) -> bytes:
         """Read exactly one TPKT message (4-byte header carries total length)."""
         header = await asyncio.wait_for(reader.readexactly(4), timeout=timeout)
         if header[0] != 0x03:
             return header
         total = (header[2] << 8) | header[3]
         rest = await asyncio.wait_for(reader.readexactly(total - 4), timeout=timeout)
-        return header + rest
+        return bytes(header) + bytes(rest)

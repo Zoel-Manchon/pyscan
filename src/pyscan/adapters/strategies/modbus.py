@@ -9,6 +9,7 @@ live OT can disrupt a real PLC. In OT, the scan itself can be the incident.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import time
 
 from pyscan.adapters.strategies.registry import register
@@ -20,7 +21,7 @@ from pyscan.domain.models import PortResult, PortState
 class ModbusScan:
     name = "modbus"
 
-    def __init__(self, *, unit: int = 1, **_ignored) -> None:
+    def __init__(self, *, unit: int = 1, **_ignored: object) -> None:
         self._unit = unit
 
     async def scan_port(self, host: str, port: int, timeout: float) -> PortResult:
@@ -29,7 +30,7 @@ class ModbusScan:
             reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(host, port), timeout=timeout
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return PortResult(port, PortState.FILTERED)
         except ConnectionRefusedError:
             latency = (time.perf_counter() - start) * 1000
@@ -45,13 +46,11 @@ class ModbusScan:
             await writer.drain()
             data = await asyncio.wait_for(reader.read(512), timeout=timeout)
             banner = describe(parse_response(data, tid))
-        except (asyncio.TimeoutError, OSError):
+        except (TimeoutError, OSError):
             banner = None
 
         writer.close()
-        try:
+        with contextlib.suppress(OSError):
             await writer.wait_closed()
-        except OSError:
-            pass
 
         return PortResult(port, PortState.OPEN, latency_ms=latency, banner=banner)

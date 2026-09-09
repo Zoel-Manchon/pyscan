@@ -9,15 +9,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 
-class Protocol(str, Enum):
+class Protocol(StrEnum):
     TCP = "tcp"
     UDP = "udp"
 
 
-class PortState(str, Enum):
+class PortState(StrEnum):
     OPEN = "open"
     CLOSED = "closed"
     FILTERED = "filtered"  # no response — firewall/drop, or host down

@@ -42,7 +42,7 @@ def live_capture(
         while True:
             try:
                 data, _addr = sock.recvfrom(65535)
-            except socket.timeout:
+            except TimeoutError:
                 yield None  # heartbeat: lets the consumer check for a quit
                 continue
             yield time.time(), LINKTYPE_ETHERNET, data

@@ -42,7 +42,7 @@ class PacketArrived(Message):
         super().__init__()
 
 
-class SniffApp(App):
+class SniffApp(App[None]):
     TITLE = "pyscan"
     SUB_TITLE = "live packet sniffer"
     CSS = """
