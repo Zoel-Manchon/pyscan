@@ -238,3 +238,22 @@ def test_banner_uses_the_block_wordmark_when_utf8_is_available():
 
     buffer.seek(0)
     assert "█" in buffer.buffer.getvalue().decode("utf-8")
+
+
+def test_the_incident_report_carries_the_alerts_as_a_timeline(tmp_path):
+    """A report that throws its own findings away is not a report."""
+    report = tmp_path / "incident.md"
+    result = runner.invoke(
+        app,
+        [
+            "monitor", str(lab_capture(tmp_path)),
+            "--hmi", "10.10.30.10",
+            "--plc", "10.10.30.21,10.10.40.7",
+            "--report", str(report),
+        ],
+    )
+    assert result.exit_code == 0
+    body = report.read_text(encoding="utf-8")
+    assert "no events recorded" not in body
+    assert "WRITE to the process" in body
+    assert "CONTROL COMMAND" in body

@@ -32,7 +32,7 @@ detection engine — all hanging off one small hexagon.**
 | **The one idea** | The engine never changes. A new scan technique is a new file and one `@register` line. A new output format is one interface. A whole second product — the IDS — is a new rule module over decoders that already existed. |
 | **Where the line is** | Probing (I/O) is kept apart from identifying (pure logic). The domain knows nothing about sockets, files, the terminal or Typer, so every rule and every codec is testable in memory. |
 | **Built with** | Python 3.11+ · asyncio · Typer · rich · Textual. scapy is optional and only for the raw SYN scan. |
-| **Quality** | **254 tests**, **89% coverage** (gated in CI), `mypy --strict`, ruff, bandit, CodeQL and pip-audit on every push, across Linux, macOS and Windows. |
+| **Quality** | **255 tests**, **89% coverage** (gated in CI), `mypy --strict`, ruff, bandit, CodeQL and pip-audit on every push, across Linux, macOS and Windows. |
 | **OT posture** | Read-only, and meant for simulators. On live ICS gear the scan can *be* the incident. |
 | **Try it** | `pip install -e ".[dev,tui]"` then `pyscan lab capture.pcap && pyscan monitor capture.pcap --hmi 10.10.30.10` |
 
@@ -95,7 +95,7 @@ detection engine — all hanging off one small hexagon.**
 
 ```bash
 pip install -e ".[dev,tui]"     # or: make dev
-pytest -q                        # 254 passing, 89% covered
+pytest -q                        # 255 passing, 89% covered
 ```
 
 ### The offline demo — no network, no privileges, sixty seconds
@@ -495,7 +495,7 @@ Every push and pull request runs the full set:
 | --- | --- | --- |
 | Lint | ruff (`E,F,I,UP,B,SIM,C4`) | style, bug patterns, modern idiom |
 | Types | **mypy `--strict`** | the whole `src/` tree, no escapes |
-| Tests | pytest | **254 tests**, Linux · macOS · Windows, Python 3.11 / 3.12 / 3.13 |
+| Tests | pytest | **255 tests**, Linux · macOS · Windows, Python 3.11 / 3.12 / 3.13 |
 | Coverage | pytest-cov | **89%**, gated — the build fails below 85% |
 | Static analysis | bandit | insecure API use |
 | Semantic analysis | CodeQL | injection and taint flow, weekly as well as per-push |

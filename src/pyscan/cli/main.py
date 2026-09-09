@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypeAlias
 
@@ -39,9 +40,11 @@ from pyscan.domain.ports import NetworkSink, ResultSink
 from pyscan.domain.targets import expand_targets
 from pyscan.domain.top_ports import top_ports
 
-# A curated top-ports set for fast network inventory (not a full 1-1024 sweep).
+# Any stream of raw frames: a capture file, or a live interface. A None is the
+# live capture's heartbeat.
 FrameSource: TypeAlias = Iterator[tuple[float, int, bytes] | None]
 
+# A curated top-ports set for fast network inventory (not a full 1-1024 sweep).
 DEFAULT_SWEEP_PORTS = (
     "21,22,23,25,53,80,110,111,135,139,143,443,445,"
     "993,995,1723,3306,3389,5432,5900,8080,8443"
@@ -276,9 +279,21 @@ def monitor(
     source = _open_live(iface) if live else _read_capture(_require_capture(capture))
     service = MonitorService(Detector(baseline=baseline), min_severity=floor)
     console = AlertConsoleSink()
+    timeline: list[tuple[str, str, str]] = []
     try:
         for alert in service.run(source):
             console.emit(alert)
+            # Every alert is an evidence-timeline entry. The TUI collects the
+            # analyst's own notes alongside these; on the command line the
+            # alerts are all there is, so a report without them would be a
+            # report that threw its findings away.
+            timeline.append(
+                (
+                    _clock(alert.ts),
+                    alert.severity.value,
+                    f"{alert.protocol} {alert.src} -> {alert.dst}: {alert.summary}",
+                )
+            )
     except KeyboardInterrupt:
         typer.echo("")
     console.summary(service.detector)
@@ -286,7 +301,7 @@ def monitor(
     if report is not None:
         from pyscan.adapters.output.incident_report import write_report
 
-        written = write_report(report, service.detector)
+        written = write_report(report, service.detector, timeline)
         typer.echo(f"incident report written to {written}")
 
 
@@ -325,6 +340,13 @@ def version() -> None:
 def _fail(message: str) -> None:
     typer.echo(f"error: {message}")
     raise typer.Exit(code=1)
+
+
+def _clock(ts: float) -> str:
+    """A capture timestamp as a UTC wall clock, for the evidence timeline."""
+    if not ts:
+        return "--:--:--"
+    return datetime.fromtimestamp(ts, tz=UTC).strftime("%H:%M:%S")
 
 
 def _require_capture(capture: Path | None) -> Path:
