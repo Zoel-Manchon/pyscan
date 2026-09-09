@@ -67,17 +67,34 @@ def build_identity() -> ModbusDeviceIdentification:
     return ident
 
 
+def _say(line: str) -> None:
+    """Print a line, falling back to ASCII where the console cannot encode it.
+
+    A Windows console on a legacy code page cannot render the box-drawing
+    characters, and an unhandled UnicodeEncodeError would take the simulator
+    down before it ever bound its port — killing the lab for a banner.
+    """
+    try:
+        print(line)
+    except UnicodeEncodeError:
+        print(line.encode("ascii", "replace").decode("ascii").replace("?", "-"))
+
+
 async def main() -> None:
     ap = argparse.ArgumentParser(description="Modbus/TCP substation-RTU simulator.")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=5020, help="default 5020 (502 needs root)")
     args = ap.parse_args()
 
-    print("┌─ Modbus/TCP simulator — Virtual Substation RTU")
-    print(f"│  listening on {args.host}:{args.port}")
-    print("│  identity: pyscan-lab / Virtual Substation RTU / fw 1.4.2")
-    print(f"│  try:  pyscan scan {args.host} -p {args.port} --type modbus")
-    print("└─ Ctrl-C to stop\n")
+    banner = [
+        "┌─ Modbus/TCP simulator — Virtual Substation RTU",
+        f"│  listening on {args.host}:{args.port}",
+        "│  identity: pyscan-lab / Virtual Substation RTU / fw 1.4.2",
+        f"│  try:  pyscan scan {args.host} -p {args.port} --type modbus",
+        "└─ Ctrl-C to stop\n",
+    ]
+    for line in banner:
+        _say(line)
 
     await StartAsyncTcpServer(
         context=build_context(), identity=build_identity(), address=(args.host, args.port)

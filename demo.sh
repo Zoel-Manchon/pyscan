@@ -27,17 +27,30 @@ cd "$(dirname "$0")" || exit 1
 # ---------------------------------------------------------------------------
 # setup
 # ---------------------------------------------------------------------------
-if ! command -v pyscan >/dev/null 2>&1 && [ -f .venv/bin/activate ]; then
-  # shellcheck disable=SC1091
-  source .venv/bin/activate
+# Activate the project's venv if one is here and not already active. The layout
+# differs by platform: bin/ on Linux and macOS, Scripts/ under Windows.
+if ! command -v pyscan >/dev/null 2>&1; then
+  for activate in .venv/bin/activate .venv/Scripts/activate; do
+    if [ -f "$activate" ]; then
+      # shellcheck disable=SC1090
+      source "$activate"
+      break
+    fi
+  done
 fi
 if ! command -v pyscan >/dev/null 2>&1; then
   echo "pyscan not found. From the project root:"
-  echo "  python3 -m venv .venv && source .venv/bin/activate && pip install -e '.[dev,tui,lab]'"
+  echo "  python3 -m venv .venv"
+  echo "  source .venv/bin/activate       # Windows: source .venv/Scripts/activate"
+  echo "  pip install -e '.[dev,tui,lab]'"
   exit 1
 fi
 
-PY=$(command -v python3 || command -v python)
+# Prefer plain `python`: once the venv is active that IS the venv's interpreter
+# on every platform. `python3` does not exist inside a Windows venv, so asking
+# for it first silently finds a system Python without this project installed —
+# and the Modbus beat then skips itself for no visible reason.
+PY=$(command -v python || command -v python3)
 PAUSE="${PAUSE:-1.6}"
 DEMO_TUI="${DEMO_TUI:-monitor}"
 DEMO_NET="${DEMO_NET:-1}"
