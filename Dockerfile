@@ -1,5 +1,5 @@
 # pyscan — containerised so `docker run pyscan scan ...` needs zero Python setup.
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 WORKDIR /app
 # LICENSE is not optional here: pyproject declares it, so the build
